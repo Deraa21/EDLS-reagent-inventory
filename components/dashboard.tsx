@@ -48,7 +48,7 @@ export default function Dashboard() {
   const expired = inventory.filter(r => txt(val(r,F.expiryStatus)) === "Expired").length;
   const expiring = inventory.filter(r => txt(val(r,F.expiryStatus)) === "Expiring Soon").length;
   const activeStock = inventory.filter(r => ["Unopened","In Use"].includes(txt(val(r,F.condition))) && txt(val(r,F.expiryStatus)) !== "Expired").length;
-  const nav = ["Overview","All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Master Product List","Receiving History","Usage & Stock Checks","Reports","Equipment","Sample Tracking"];
+  const nav = ["Overview","All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Master Product List","Reagent Receiving","Receiving History","Usage & Stock Checks","Reports","Equipment","Sample Tracking"];
   const title = section === "Overview" ? "Live Reagent Command Center" : section;
   return <div className="app-shell">
     <aside className="sidebar"><div className="brand">EDLS INVENTORY</div><div className="brand-sub">Laboratory stock operations</div><div className="nav-label">Workspace</div><nav className="nav">{nav.map(n => <a key={n} href="#" className={section===n?"active":""} onClick={e=>{e.preventDefault();setSection(n);}}>{n}</a>)}</nav><div className="nav-label">Database</div><div style={{padding:"0 12px",fontSize:11,color:"#9fb3c8",lineHeight:1.7}}>Airtable · read-only MVP<br/>Base: EDLS REAGENT DB</div></aside>
