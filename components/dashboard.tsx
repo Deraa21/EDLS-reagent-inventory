@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [inventoryOpen, setInventoryOpen] = useState(true);
   const [equipmentOpen, setEquipmentOpen] = useState(false);
   const [trackingOpen, setTrackingOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useEffect(() => { fetch("/api/inventory").then(async r => { const j = await r.json(); setData(j); }).catch(() => setData({error:"Could not contact the application API."})).finally(() => setLoading(false)); }, []);
   const inventory = data.inventory ?? [];
   const master = data.master ?? [];
@@ -53,17 +54,17 @@ export default function Dashboard() {
   const activeStock = inventory.filter(r => ["Unopened","In Use"].includes(txt(val(r,F.condition))) && txt(val(r,F.expiryStatus)) !== "Expired").length;
   const title = section === "Overview" ? "Live Reagent Command Center" : section;
   return <div className="app-shell">
-    <aside className="sidebar"><div className="brand">EDLS INVENTORY</div><div className="brand-sub">Laboratory stock operations</div><div className="nav-label">Workspace</div>
+    <aside className={"sidebar "+(mobileNavOpen?"mobile-nav-open":"")}><div className="sidebar-brand-row"><div><div className="brand">EDLS INVENTORY</div><div className="brand-sub">Laboratory stock operations</div></div><button type="button" className="mobile-nav-toggle" aria-label={mobileNavOpen?"Close navigation":"Open navigation"} aria-expanded={mobileNavOpen} onClick={()=>setMobileNavOpen(v=>!v)}>{mobileNavOpen?"✕":"☰"}<span>{mobileNavOpen?"Close":"Menu"}</span></button></div><div className="nav-label">Workspace</div>
       <nav className="nav nav-tree">
-        <a href="#" className={section==="Overview"?"active":""} onClick={e=>{e.preventDefault();setSection("Overview");}}><span className="nav-item-icon">⌂</span>Overview</a>
+        <a href="#" className={section==="Overview"?"active":""} onClick={e=>{e.preventDefault();setSection("Overview");setMobileNavOpen(false);}}><span className="nav-item-icon">⌂</span>Overview</a>
         <button type="button" className={"nav-folder "+(["All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Master Product List","Reagent Receiving","Usage & Stock Checks","Reports"].includes(section)?"folder-active":"")} aria-expanded={inventoryOpen} onClick={()=>setInventoryOpen(v=>!v)}><span className="nav-item-icon">▣</span><span className="nav-folder-name">Inventory</span><span className={"nav-chevron "+(inventoryOpen?"opened":"")}>›</span></button>
         {inventoryOpen&&<div className="nav-children">
-          {["All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Master Product List","Reagent Receiving","Usage & Stock Checks","Reports"].map(n=><a key={n} href="#" className={section===n?"active":""} onClick={e=>{e.preventDefault();setSection(n);}}><span className="nav-child-dot"/>{n}</a>)}
+          {["All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Master Product List","Reagent Receiving","Usage & Stock Checks","Reports"].map(n=><a key={n} href="#" className={section===n?"active":""} onClick={e=>{e.preventDefault();setSection(n);setMobileNavOpen(false);}}><span className="nav-child-dot"/>{n}</a>)}
         </div>}
         <button type="button" className={"nav-folder "+(section==="Equipment"?"folder-active":"")} aria-expanded={equipmentOpen} onClick={()=>setEquipmentOpen(v=>!v)}><span className="nav-item-icon">⚙</span><span className="nav-folder-name">Equipment Maintenance</span><span className={"nav-chevron "+(equipmentOpen?"opened":"")}>›</span></button>
-        {equipmentOpen&&<div className="nav-children"><a href="#" className={section==="Equipment"?"active":""} onClick={e=>{e.preventDefault();setSection("Equipment");}}><span className="nav-child-dot"/>Equipment</a></div>}
+        {equipmentOpen&&<div className="nav-children"><a href="#" className={section==="Equipment"?"active":""} onClick={e=>{e.preventDefault();setSection("Equipment");setMobileNavOpen(false);}}><span className="nav-child-dot"/>Equipment</a></div>}
         <button type="button" className={"nav-folder "+(section==="Sample Tracking"?"folder-active":"")} aria-expanded={trackingOpen} onClick={()=>setTrackingOpen(v=>!v)}><span className="nav-item-icon">⇄</span><span className="nav-folder-name">Sample &amp; Outsourcing Tracking</span><span className={"nav-chevron "+(trackingOpen?"opened":"")}>›</span></button>
-        {trackingOpen&&<div className="nav-children"><a href="#" className={section==="Sample Tracking"?"active":""} onClick={e=>{e.preventDefault();setSection("Sample Tracking");}}><span className="nav-child-dot"/>Sample Tracking</a></div>}
+        {trackingOpen&&<div className="nav-children"><a href="#" className={section==="Sample Tracking"?"active":""} onClick={e=>{e.preventDefault();setSection("Sample Tracking");setMobileNavOpen(false);}}><span className="nav-child-dot"/>Sample Tracking</a></div>}
       </nav><div className="nav-label">Database</div><div style={{padding:"0 12px",fontSize:11,color:"#9fb3c8",lineHeight:1.7}}>Airtable · read-only MVP<br/>Base: EDLS REAGENT DB</div></aside>
     <main className="main">
       <header className="topbar"><div><div className="eyebrow">EDLS · Laboratory Operations</div><h1>{title}</h1><div className="subtitle">Reagent stock, batch condition, expiry and inventory visibility.</div></div><div className={"badge "+(data.connected?"good":loading?"warn":"bad")}>{loading?"Connecting…":data.connected?"Airtable connected":"Connection needs setup"}</div></header>
