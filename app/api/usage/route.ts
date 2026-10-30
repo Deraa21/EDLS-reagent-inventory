@@ -56,23 +56,16 @@ export async function POST(request: Request) {
     const log = await airtableCreate(TABLES.usage,logFields);
     // These activities do not have an equivalent deployed stock-update automation.
     if (activity==="Wastage" || activity==="Stock Adjustment") {
-      const stockFields:Record<string,unknown> = {"Last Checked":new Date().toISOString().slice(0,10),"Scientist Notes":notes || undefined};
-      if (activity==="Stock Adjustment" && remaining!==null) stockFields["Remaining Reagent %"] = remaining/100;
-      if (activity==="Wastage" && removed>0) {
-        if (removed>=currentQty) {
-          stockFields["Quantity"] = 0;
-          stockFields["Stock Condition"] = "Exhausted";
-          stockFields["Remaining Reagent %"] = 0;
-        } else {
-          stockFields["Quantity"] = currentQty-removed;
-        }
+      // Airtable automations own the Remaining %, Opened, Exhausted, and Expired stock updates.
+    // Avoid duplicate stock writes here. The app directly adjusts pack quantity only for Wastage.
+    if (activity==="Wastage" && removed>0) {
+      if (removed > currentQty) return NextResponse.json({error:"Packs removed cannot exceed the pack quantity currently recorded."},{status:400});
+      const qtyAfter = currentQty - removed;
+      const stockFields:Record<string,unknown> = {"Quantity":qtyAfter};
+      if (qtyAfter===0) {
+        stockFields["Stock Condition"] = "Exhausted";
+        stockFields["Remaining Reagent %"] = 0;
       }
-      Object.keys(stockFields).forEach(k=>stockFields[k]===undefined && delete stockFields[k]);
       await airtableUpdate(TABLES.currentInventory,stockId,stockFields);
     }
-    return NextResponse.json({ok:true,id:log.id,message:"Stock check saved and stock record updated."},{status:201});
-  } catch(error) {
-    const message = error instanceof Error ? error.message : "Unexpected server error.";
-    return NextResponse.json({error:message},{status:error instanceof AirtableConfigError?503:500});
-  }
-}
+
