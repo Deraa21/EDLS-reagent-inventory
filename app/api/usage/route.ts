@@ -51,15 +51,14 @@ export async function POST(request: Request) {
     };
     if (remaining!==null) logFields["Remaining Reagent % After Check"] = remaining/100;
     Object.keys(logFields).forEach(k=>logFields[k]===undefined && delete logFields[k]);
-    // Create the log first: existing Airtable automations own Usage Check, Pack Opened,
-    // Pack Exhausted and Expired stock changes. Do not duplicate those writes here.
+    if (activity==="Wastage" && removed > currentQty) {
+      return NextResponse.json({error:"Packs removed cannot exceed the pack quantity currently recorded."},{status:400});
+    }
+    // Existing Airtable automations own remaining-percentage, pack-opened,
+    // pack-exhausted and expired status updates. Avoid duplicating those writes here.
     const log = await airtableCreate(TABLES.usage,logFields);
-    // These activities do not have an equivalent deployed stock-update automation.
-    if (activity==="Wastage" || activity==="Stock Adjustment") {
-      // Airtable automations own the Remaining %, Opened, Exhausted, and Expired stock updates.
-    // Avoid duplicate stock writes here. The app directly adjusts pack quantity only for Wastage.
+    // Wastage quantity is not covered by those automations, so update it here.
     if (activity==="Wastage" && removed>0) {
-      if (removed > currentQty) return NextResponse.json({error:"Packs removed cannot exceed the pack quantity currently recorded."},{status:400});
       const qtyAfter = currentQty - removed;
       const stockFields:Record<string,unknown> = {"Quantity":qtyAfter};
       if (qtyAfter===0) {
@@ -68,4 +67,9 @@ export async function POST(request: Request) {
       }
       await airtableUpdate(TABLES.currentInventory,stockId,stockFields);
     }
-
+    return NextResponse.json({ok:true,id:log.id,message:"Stock check saved."},{status:201});
+  } catch(error) {
+    const message = error instanceof Error ? error.message : "Unexpected server error.";
+    return NextResponse.json({error:message},{status:error instanceof AirtableConfigError?503:500});
+  }
+}
