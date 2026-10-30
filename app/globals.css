@@ -181,3 +181,57 @@ h1 { font-size:clamp(25px,3vw,34px); margin:7px 0; letter-spacing:-.035em; }
   th,td { padding:10px 9px; }
   .footer { line-height:1.5; }
 }
+
+
+/* True phone layout: turn dense data tables into readable stacked cards */
+@media(max-width:600px){
+  .app-shell{display:block;width:100%;min-width:0;overflow-x:clip}
+  .sidebar{position:relative;width:100%;border-radius:0 0 16px 16px;box-shadow:0 5px 18px rgba(16,42,67,.12)}
+  .main{width:100%;min-width:0;overflow-x:clip}
+  .topbar{gap:10px;margin-bottom:16px}
+  .topbar>div:first-child{width:100%;min-width:0}
+  .eyebrow{font-size:9px}
+  .metrics+.metrics{margin-top:9px}
+  .metric{border-radius:12px;box-shadow:0 2px 8px rgba(16,42,67,.035)}
+  .metric-label{font-size:11px}
+  .metric-note{font-size:10px}
+  .panel-head h2{font-size:15px}
+  .table-wrap{max-width:none;width:100%;overflow:visible}
+  .table-wrap table,.table-wrap tbody{display:block;width:100%;white-space:normal}
+  .table-wrap thead{display:none}
+  .table-wrap tbody{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+  .table-wrap tbody tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 12px;background:#fff;border:1px solid #e5eaf0;border-radius:12px;padding:8px 12px;box-shadow:0 2px 7px rgba(16,42,67,.035)}
+  .table-wrap tbody tr:hover{background:#fff}
+  .table-wrap tbody td{display:flex;flex-direction:column;justify-content:flex-start;gap:4px;min-width:0;white-space:normal;overflow-wrap:anywhere;border-bottom:1px solid #f0f2f5;padding:10px 0;font-size:12px;line-height:1.4}
+  .table-wrap tbody td:before{font-size:9px;line-height:1.25;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:#7a8798}
+  .table-wrap tbody td:nth-child(1):before{content:"Stock ID"}
+  .table-wrap tbody td:nth-child(2):before{content:"Reagent"}
+  .table-wrap tbody td:nth-child(3):before{content:"Manufacturer / Analyzer"}
+  .table-wrap tbody td:nth-child(4):before{content:"Lot / REF"}
+  .table-wrap tbody td:nth-child(5):before{content:"Remaining"}
+  .table-wrap tbody td:nth-child(6):before{content:"Stock level"}
+  .table-wrap tbody td:nth-child(7):before{content:"Condition"}
+  .table-wrap tbody td:nth-child(8):before{content:"Expiry"}
+  .table-wrap tbody td:nth-child(9):before{content:"Location"}
+  .table-wrap tbody td:last-child{border-bottom:0}
+  .table-wrap tbody td:nth-child(1),.table-wrap tbody td:nth-child(2){grid-column:span 1}
+  .table-wrap tbody td:nth-child(3),.table-wrap tbody td:nth-child(4){grid-column:span 1}
+  .table-wrap tbody td:nth-child(8){grid-column:span 1}
+  .table-wrap tbody td:nth-child(9){grid-column:span 1}
+  .form-hero{gap:12px}
+  .form-hero-copy{flex:1 1 180px}
+  .form-hero-icon{width:40px;height:40px;flex-basis:40px;border-radius:12px;font-size:22px}
+  .form-hero h2{font-size:20px}
+  .form-grid{padding:15px 12px}
+  .form-section-heading h3{font-size:14px}
+  .form-actions .primary-button{font-size:14px}
+}
+@media(max-width:380px){
+  .main{padding-left:10px;padding-right:10px}
+  .metrics{gap:7px}
+  .metric{padding:10px}
+  .metric-value{font-size:21px}
+  .table-wrap tbody tr{padding:7px 10px;gap:0 8px}
+  .table-wrap tbody td{font-size:11px}
+  .form-hero{padding:16px 13px}
+}
