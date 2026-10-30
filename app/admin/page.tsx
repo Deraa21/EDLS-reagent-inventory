@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const modules = [
   { name: "Reagent Inventory", scope: "Current stock, usable packs, low stock, expiry, catalogue, receiving and usage.", status: "Existing module", icon: "▣" },
@@ -16,8 +16,35 @@ const roles = [
   { name: "Management Viewer", access: "Approved dashboards and read-only reports", tone: "viewer" },
 ];
 
+type UserRow = { id:string; fullName:string; email:string; role:string; status:string; createdAt:string; lastLoginAt:string|null };
+const roleOptions = ["System Admin","Inventory Manager","Sample Outsourcing Officer","Equipment Maintenance Officer","Laboratory Scientist","Management Viewer"];
+
 export default function AdminPage() {
-  const [showPlan, setShowPlan] = useState(true);
+  const [showPlan, setShowPlan] = useState(false);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [userError, setUserError] = useState("");
+  const [userNotice, setUserNotice] = useState("");
+  const [savingUser, setSavingUser] = useState(false);
+  const [form, setForm] = useState({fullName:"",email:"",role:"Inventory Manager",password:""});
+  async function loadUsers() {
+    setLoadingUsers(true); setUserError("");
+    try { const r=await fetch("/api/admin/users",{cache:"no-store"}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Could not load users."); setUsers(d.users||[]); }
+    catch(e) { setUserError(e instanceof Error?e.message:"Could not load users."); }
+    finally { setLoadingUsers(false); }
+  }
+  useEffect(()=>{ void loadUsers(); },[]);
+  async function createUser(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); setSavingUser(true); setUserError(""); setUserNotice("");
+    try { const r=await fetch("/api/admin/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Could not create account."); setUsers(prev=>[d.user,...prev]); setForm({fullName:"",email:"",role:"Inventory Manager",password:""}); setUserNotice("Account created successfully. Share the temporary password with the staff member securely."); }
+    catch(e) { setUserError(e instanceof Error?e.message:"Could not create account."); }
+    finally { setSavingUser(false); }
+  }
+  async function updateUser(id:string, patch:Record<string,string>) {
+    setUserError(""); setUserNotice("");
+    try { const r=await fetch("/api/admin/users",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,...patch})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Could not update account."); setUsers(prev=>prev.map(u=>u.id===id?d.user:u)); setUserNotice("User account updated."); }
+    catch(e) { setUserError(e instanceof Error?e.message:"Could not update account."); }
+  }
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.assign("/login");
@@ -48,9 +75,25 @@ export default function AdminPage() {
           <article><span className="admin-stat-icon purple">⛨</span><div><small>Proposed role types</small><strong>6</strong><em>Ready for access-control setup</em></div></article>
         </div>
         <section className="admin-section" id="users">
-          <div className="admin-section-head"><div><div className="admin-eyebrow">STAFF ACCESS</div><h2>User Management</h2><p>Accounts and permissions will be managed from here.</p></div><span className="admin-tag pending">Setup in progress</span></div>
-          <div className="admin-callout"><div className="admin-callout-icon">♙</div><div><strong>User creation is the next implementation step</strong><p>This first dashboard identifies your admin account and outlines access roles. Staff creation, persistent role assignments, account activation/deactivation, and audit history are not yet connected to a user database, so this screen does not pretend to create accounts.</p><button className="admin-primary" onClick={()=>setShowPlan(v=>!v)}>{showPlan?"Hide implementation checklist":"View implementation checklist"} <span>→</span></button></div></div>
-          {showPlan && <div className="admin-checklist"><div><span className="check-done">✓</span><span><strong>Admin login foundation</strong><small>Login route and signed session cookie added</small></span><b>Foundation</b></div><div><span className="check-next">2</span><span><strong>Persistent staff account store</strong><small>Store staff email, role, status and secure password hashes</small></span><b>Next</b></div><div><span className="check-next">3</span><span><strong>Permission enforcement</strong><small>Restrict page routes and API endpoints by assigned role</small></span><b>Next</b></div><div><span className="check-next">4</span><span><strong>Admin actions and audit log</strong><small>Create/deactivate users and track important changes</small></span><b>Next</b></div></div>}
+          <div className="admin-section-head"><div><div className="admin-eyebrow">STAFF ACCESS</div><h2>User Management</h2><p>Create staff accounts, assign access roles and manage account status.</p></div><span className="admin-tag">{users.length} account{users.length===1?"":"s"}</span></div>
+          {userError && <div className="user-feedback error" role="alert">{userError}</div>}
+          {userNotice && <div className="user-feedback success" role="status">{userNotice}</div>}
+          <div className="user-admin-grid">
+            <form className="user-create-card" onSubmit={createUser}>
+              <div className="user-card-title"><div><strong>＋ Add a staff user</strong><p>New accounts are saved to the EDLS User Accounts table.</p></div><span>NEW USER</span></div>
+              <label>Full name<input required minLength={2} value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})} placeholder="Staff member's full name"/></label>
+              <label>Email address<input required type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="name@edls.example"/></label>
+              <label>Access role<select value={form.role} onChange={e=>setForm({...form,role:e.target.value})}>{roleOptions.map(role=><option key={role}>{role}</option>)}</select></label>
+              <label>Temporary password<input required type="password" minLength={12} autoComplete="new-password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="At least 12 characters"/><small>Use a unique temporary password and share it privately.</small></label>
+              <button className="admin-primary" type="submit" disabled={savingUser}>{savingUser?"Creating account…":"Create staff account →"}</button>
+            </form>
+            <div className="user-list-card">
+              <div className="user-card-title"><div><strong>Staff accounts</strong><p>Account status and assigned role</p></div><button type="button" className="user-refresh" onClick={()=>void loadUsers()}>↻ Refresh</button></div>
+              {loadingUsers ? <div className="user-empty">Loading accounts…</div> : users.length===0 ? <div className="user-empty">No staff accounts found yet. Add the first user using the form.</div> :
+                <div className="user-table-wrap"><table className="user-table"><thead><tr><th>Staff member</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>{users.map(user=><tr key={user.id}><td><strong>{user.fullName}</strong><small>{user.email}</small></td><td><select aria-label={"Role for "+user.fullName} value={user.role} onChange={e=>void updateUser(user.id,{role:e.target.value})}>{roleOptions.map(role=><option key={role}>{role}</option>)}</select></td><td><span className={"user-status "+(user.status==="Active"?"active":"inactive")}>{user.status}</span></td><td><button className="user-action" type="button" onClick={()=>void updateUser(user.id,{status:user.status==="Active"?"Inactive":"Active"})}>{user.status==="Active"?"Deactivate":"Activate"}</button></td></tr>)}</tbody></table></div>}
+            </div>
+          </div>
+          <div className="admin-note"><strong>Security note:</strong> Passwords are stored as salted PBKDF2 hashes, not plaintext. Account role selection is stored now; role-based restrictions across every module and API still need to be completed before staff should use the system for live work.</div>
         </section>
         <section className="admin-section" id="roles">
           <div className="admin-section-head"><div><div className="admin-eyebrow">ACCESS CONTROL</div><h2>Roles &amp; permissions</h2><p>Recommended starting roles for the laboratory.</p></div><span className="admin-tag">Proposed design</span></div>
@@ -76,8 +119,9 @@ export default function AdminPage() {
       .admin-checklist{margin-top:10px;background:#fff;border:1px solid #e2e9f0;border-radius:12px;padding:4px 18px}.admin-checklist>div{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #edf1f5}.admin-checklist>div:last-child{border-bottom:0}.check-done,.check-next{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border-radius:50%;font-size:11px;font-weight:800}.check-done{background:#dff7eb;color:#13794b}.check-next{background:#eef2f6;color:#63748a}.admin-checklist strong{display:block;font-size:11px}.admin-checklist small{display:block;color:#78879a;font-size:10px;margin-top:4px}.admin-checklist b{margin-left:auto;color:#6b7c90;font-size:9px;white-space:nowrap}
       .admin-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.admin-role-card{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding:16px;background:white;border:1px solid #e3eaf0;border-radius:12px}.admin-role-symbol{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#eef2f7;color:#3f5a75;font-size:17px}.admin-role-symbol.admin{background:#dff5f2;color:#087e8b}.admin-role-symbol.inventory{background:#e8f0fe;color:#3456a4}.admin-role-symbol.samples{background:#f0e9ff;color:#7043b5}.admin-role-symbol.equipment{background:#fff0dc;color:#9c5d0c}.admin-role-symbol.scientist{background:#e4f7e9;color:#237b44}.admin-role-symbol.viewer{background:#f0f2f5;color:#536477}.admin-role-card h3{font-size:12px;margin:2px 0 6px}.admin-role-card p{font-size:10px;line-height:1.6;color:#728197;margin:0 0 9px}.admin-role-status{grid-column:2;justify-self:start;font-size:9px;color:#8a97a7;background:#f5f7fa;padding:5px 7px;border-radius:5px}
       .admin-note{margin-top:13px;padding:13px 15px;border:1px solid #f4dda4;background:#fffbeb;border-radius:10px;color:#855c16;font-size:10px;line-height:1.7}.admin-note strong{color:#70480a}
-      .admin-outline{display:inline-flex;text-decoration:none;border:1px solid #d8e1e9;background:#fff;border-radius:8px;padding:9px 12px;font-size:10px;font-weight:750;color:#34495e;white-space:nowrap}.admin-module-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.admin-module-card{background:#fff;border:1px solid #e3eaf0;border-radius:13px;padding:17px}.admin-module-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.admin-module-top>span{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#e8f5f5;color:#087e8b;font-size:18px}.admin-module-top small{font-size:9px;color:#6e7e91;text-align:right}.admin-module-card h3{font-size:13px;margin:16px 0 7px}.admin-module-card p{font-size:10px;color:#718096;line-height:1.7;min-height:52px;margin:0}.admin-module-footer{display:flex;align-items:center;gap:7px;border-top:1px solid #edf1f5;margin-top:13px;padding-top:12px;font-size:9px;color:#718096}.dot-live,.dot-pending{width:7px;height:7px;border-radius:50%;background:#16a36a}.dot-pending{background:#e7a32c}.admin-footer{padding:17px 0;color:#8794a4;font-size:10px;border-top:1px solid #e2e8f0;margin-top:30px}
-      @media(max-width:1080px){.admin-stats{grid-template-columns:1fr}.admin-module-grid{grid-template-columns:1fr}.admin-module-card p{min-height:0}}
+      .admin-outline{display:inline-flex;text-decoration:none;border:1px solid #d8e1e9;background:#fff;border-radius:8px;padding:9px 12px;font-size:10px;font-weight:750;color:#34495e;white-space:nowrap}.admin-module-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.admin-module-card{background:#fff;border:1px solid #e3eaf0;border-radius:13px;padding:17px}.admin-module-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.admin-module-top>span{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#e8f5f5;color:#087e8b;font-size:18px}.admin-module-top small{font-size:9px;color:#6e7e91;text-align:right}.admin-module-card h3{font-size:13px;margin:16px 0 7px}.admin-module-card p{font-size:10px;color:#718096;line-height:1.7;min-height:52px;margin:0}.admin-module-footer{display:flex;align-items:center;gap:7px;border-top:1px solid #edf1f5;margin-top:13px;padding-top:12px;font-size:9px;color:#718096}.dot-live,.dot-pending{width:7px;height:7px;border-radius:50%;background:#16a36a}.dot-pending{background:#e7a32c}.user-admin-grid{display:grid;grid-template-columns:minmax(260px,.8fr) minmax(0,1.2fr);gap:14px;align-items:start}.user-create-card,.user-list-card{background:#fff;border:1px solid #e3eaf0;border-radius:13px;padding:18px;min-width:0}.user-card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px}.user-card-title strong{font-size:13px}.user-card-title p{margin:5px 0 0;color:#7a8798;font-size:10px;line-height:1.5}.user-card-title>span{font-size:9px;letter-spacing:.1em;font-weight:800;color:#087e8b;background:#e5f7f5;padding:6px 7px;border-radius:5px}.user-create-card label{display:flex;flex-direction:column;gap:7px;font-size:10px;font-weight:750;color:#46596e;margin-bottom:13px}.user-create-card input,.user-create-card select,.user-table select{width:100%;min-width:0;border:1px solid #d9e2eb;border-radius:8px;padding:10px;font-size:11px;color:#24384f;background:white}.user-create-card label small{font-weight:400;color:#8a96a6;line-height:1.4}.user-create-card button:disabled{opacity:.6;cursor:wait}.user-refresh,.user-action{border:1px solid #dce5ed;background:white;border-radius:7px;padding:7px 9px;color:#344c63;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}.user-table-wrap{overflow:auto}.user-table{width:100%;border-collapse:collapse;font-size:10px}.user-table th{text-align:left;background:#f8fafc;color:#7a8798;font-size:9px;text-transform:uppercase;letter-spacing:.05em}.user-table th,.user-table td{padding:11px 8px;border-bottom:1px solid #edf1f5;vertical-align:middle}.user-table td strong,.user-table td small{display:block}.user-table td strong{font-size:10px}.user-table td small{font-size:9px;color:#8390a0;margin-top:4px;overflow-wrap:anywhere}.user-table select{min-width:145px;padding:7px}.user-status{display:inline-block;border-radius:999px;padding:5px 7px;font-size:9px;font-weight:750}.user-status.active{background:#dcfce7;color:#166534}.user-status.inactive{background:#f1f3f6;color:#667085}.user-empty{padding:25px 10px;color:#7a8798;font-size:11px;text-align:center;line-height:1.7}.user-feedback{padding:11px 13px;border-radius:9px;margin-bottom:12px;font-size:11px;line-height:1.6}.user-feedback.error{background:#fff1f0;border:1px solid #ffd5d2;color:#912018}.user-feedback.success{background:#ecfdf3;border:1px solid #abefc6;color:#067647}
+      .admin-footer{padding:17px 0;color:#8794a4;font-size:10px;border-top:1px solid #e2e8f0;margin-top:30px}
+      @media(max-width:1080px){.admin-stats{grid-template-columns:1fr}.user-admin-grid{grid-template-columns:1fr}.admin-module-grid{grid-template-columns:1fr}.admin-module-card p{min-height:0}}
       @media(max-width:760px){.admin-header{padding:0 16px;height:66px}.admin-secure{display:none}.admin-layout{grid-template-columns:1fr}.admin-side{position:static;height:auto;min-height:0;padding:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.admin-side-label{grid-column:1/-1;padding:5px 8px 9px}.admin-side-link{margin:0;padding:10px;font-size:11px}.admin-side-bottom{grid-column:1/-1;margin-top:7px;padding:13px 5px 2px}.admin-content{padding:18px 13px}.admin-welcome{padding:22px 20px}.admin-welcome-icon{display:none}.admin-role-grid{grid-template-columns:1fr}.admin-section-head{align-items:flex-start;flex-direction:column}.admin-callout{padding:15px}.admin-module-grid{grid-template-columns:1fr}}
     `}</style>
   </main>;
