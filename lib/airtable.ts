@@ -56,3 +56,21 @@ export async function airtableCreate(tableId: string, fields: Record<string, unk
   }
   return response.json() as Promise<AirtableRecord>;
 }
+
+export async function airtableUpdate(tableId: string, recordId: string, fields: Record<string, unknown>) {
+  if (process.env.ENABLE_INVENTORY_WRITES !== "true") {
+    throw new Error("Inventory writes are disabled. Enable ENABLE_INVENTORY_WRITES only after confirming the form mappings.");
+  }
+  const token = process.env.AIRTABLE_PAT;
+  if (!token) throw new AirtableConfigError("Airtable connection is not configured.");
+  const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${tableId}/${recordId}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ fields, typecast: false }),
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new Error(`Airtable could not update the stock record (HTTP ${response.status}). Check field mappings and required fields.`);
+  }
+  return response.json() as Promise<AirtableRecord>;
+}
