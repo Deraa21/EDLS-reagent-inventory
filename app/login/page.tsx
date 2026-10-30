@@ -1,10 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
-  const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +19,7 @@ export default function LoginPage() {
       });
       const result = await response.json();
       if (!response.ok) { setError(result.error || "Login failed."); return; }
-      const requested = params.get("next") || "/";
+      const requested = new URLSearchParams(window.location.search).get("next") || "/";
       window.location.assign(requested.startsWith("/") && !requested.startsWith("//") ? requested : "/");
     } catch {
       setError("Could not contact the login service. Please try again.");
