@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { airtableList, TABLES, AirtableConfigError } from "@/lib/airtable";
+import { airtableCreate, airtableList, TABLES, AirtableConfigError } from "@/lib/airtable";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
