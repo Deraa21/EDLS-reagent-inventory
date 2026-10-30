@@ -1,0 +1,84 @@
+"use client";
+
+import { useState } from "react";
+
+const modules = [
+  { name: "Reagent Inventory", scope: "Current stock, usable packs, low stock, expiry, catalogue, receiving and usage.", status: "Existing module", icon: "▣" },
+  { name: "Sample Outsourcing", scope: "Sample dispatch, referral laboratories, pending results and returned reports.", status: "Needs data mapping", icon: "⇄" },
+  { name: "Equipment Maintenance", scope: "Equipment register, service schedules, breakdowns and maintenance history.", status: "Needs data mapping", icon: "⚙" },
+];
+const roles = [
+  { name: "System Admin", access: "All modules, users, permissions and settings", tone: "admin" },
+  { name: "Inventory Manager", access: "Reagent inventory and stock operations", tone: "inventory" },
+  { name: "Sample Outsourcing Officer", access: "Sample tracking and outsourcing only", tone: "samples" },
+  { name: "Equipment Maintenance Officer", access: "Equipment and maintenance only", tone: "equipment" },
+  { name: "Laboratory Scientist", access: "Only assigned laboratory operational tasks", tone: "scientist" },
+  { name: "Management Viewer", access: "Approved dashboards and read-only reports", tone: "viewer" },
+];
+
+export default function AdminPage() {
+  const [showPlan, setShowPlan] = useState(true);
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.assign("/login");
+  }
+  return <main className="admin-root">
+    <header className="admin-header">
+      <a className="admin-brand" href="/"><span className="admin-mark">E</span><span><strong>EDLS</strong><small>LABORATORY SYSTEM</small></span></a>
+      <div className="admin-header-actions"><span className="admin-secure"><span/> System Admin session</span><button onClick={logout} className="admin-logout">Log out</button></div>
+    </header>
+    <div className="admin-layout">
+      <aside className="admin-side">
+        <div className="admin-side-label">ADMINISTRATION</div>
+        <a href="/admin" className="admin-side-link active"><span>▦</span> Admin Overview</a>
+        <a href="#users" className="admin-side-link" onClick={e=>{e.preventDefault();document.getElementById("users")?.scrollIntoView({behavior:"smooth"});}}><span>♙</span> User Management</a>
+        <a href="#roles" className="admin-side-link" onClick={e=>{e.preventDefault();document.getElementById("roles")?.scrollIntoView({behavior:"smooth"});}}><span>⛨</span> Roles &amp; Access</a>
+        <a href="#modules" className="admin-side-link" onClick={e=>{e.preventDefault();document.getElementById("modules")?.scrollIntoView({behavior:"smooth"});}}><span>▤</span> System Modules</a>
+        <div className="admin-side-bottom"><div className="admin-avatar">SC</div><div><strong>System Administrator</strong><small>nwachukwuderaa@gmail.com</small></div></div>
+      </aside>
+      <section className="admin-content">
+        <div className="admin-breadcrumb">EDLS / Administration / <strong>Overview</strong></div>
+        <div className="admin-welcome">
+          <div><div className="admin-eyebrow">CONTROL CENTER</div><h1>System Admin Dashboard</h1><p>Manage EDLS modules, plan staff access, and monitor the system's administration setup.</p></div>
+          <div className="admin-welcome-icon">⌘</div>
+        </div>
+        <div className="admin-stats">
+          <article><span className="admin-stat-icon">♙</span><div><small>Admin accounts configured</small><strong>1</strong><em>Your initial administrator identity</em></div></article>
+          <article><span className="admin-stat-icon teal">▦</span><div><small>System modules</small><strong>3</strong><em>Inventory, samples and equipment</em></div></article>
+          <article><span className="admin-stat-icon purple">⛨</span><div><small>Proposed role types</small><strong>6</strong><em>Ready for access-control setup</em></div></article>
+        </div>
+        <section className="admin-section" id="users">
+          <div className="admin-section-head"><div><div className="admin-eyebrow">STAFF ACCESS</div><h2>User Management</h2><p>Accounts and permissions will be managed from here.</p></div><span className="admin-tag pending">Setup in progress</span></div>
+          <div className="admin-callout"><div className="admin-callout-icon">♙</div><div><strong>User creation is the next implementation step</strong><p>This first dashboard identifies your admin account and outlines access roles. Staff creation, persistent role assignments, account activation/deactivation, and audit history are not yet connected to a user database, so this screen does not pretend to create accounts.</p><button className="admin-primary" onClick={()=>setShowPlan(v=>!v)}>{showPlan?"Hide implementation checklist":"View implementation checklist"} <span>→</span></button></div></div>
+          {showPlan && <div className="admin-checklist"><div><span className="check-done">✓</span><span><strong>Admin login foundation</strong><small>Login route and signed session cookie added</small></span><b>Foundation</b></div><div><span className="check-next">2</span><span><strong>Persistent staff account store</strong><small>Store staff email, role, status and secure password hashes</small></span><b>Next</b></div><div><span className="check-next">3</span><span><strong>Permission enforcement</strong><small>Restrict page routes and API endpoints by assigned role</small></span><b>Next</b></div><div><span className="check-next">4</span><span><strong>Admin actions and audit log</strong><small>Create/deactivate users and track important changes</small></span><b>Next</b></div></div>}
+        </section>
+        <section className="admin-section" id="roles">
+          <div className="admin-section-head"><div><div className="admin-eyebrow">ACCESS CONTROL</div><h2>Roles &amp; permissions</h2><p>Recommended starting roles for the laboratory.</p></div><span className="admin-tag">Proposed design</span></div>
+          <div className="admin-role-grid">{roles.map(role=><article className="admin-role-card" key={role.name}><div className={"admin-role-symbol "+role.tone}>{role.tone==="admin"?"♛":role.tone==="inventory"?"▣":role.tone==="samples"?"⇄":role.tone==="equipment"?"⚙":role.tone==="scientist"?"✚":"◉"}</div><div><h3>{role.name}</h3><p>{role.access}</p></div><span className="admin-role-status">Not assigned yet</span></article>)}</div>
+          <div className="admin-note"><strong>Important:</strong> These roles are currently a design plan, not active staff permissions. Until multi-user authorization is implemented and tested, do not share the admin login with staff.</div>
+        </section>
+        <section className="admin-section" id="modules">
+          <div className="admin-section-head"><div><div className="admin-eyebrow">WORKSPACE</div><h2>System modules</h2><p>Current implementation status across the EDLS workspace.</p></div><a className="admin-outline" href="/">Open inventory app ↗</a></div>
+          <div className="admin-module-grid">{modules.map(module=><article className="admin-module-card" key={module.name}><div className="admin-module-top"><span>{module.icon}</span><small>{module.status}</small></div><h3>{module.name}</h3><p>{module.scope}</p><div className="admin-module-footer"><span className={module.status==="Existing module"?"dot-live":"dot-pending"}/>{module.status==="Existing module"?"App module present":"Requires implementation"}</div></article>)}</div>
+        </section>
+        <footer className="admin-footer">EDLS Laboratory System · Administration · Access and user-management features are being implemented in stages.</footer>
+      </section>
+    </div>
+    <style jsx global>{`
+      *{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#182b43;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      .admin-root{min-height:100vh}.admin-header{height:76px;background:#fff;border-bottom:1px solid #e5eaf0;display:flex;align-items:center;justify-content:space-between;padding:0 34px;position:sticky;top:0;z-index:5}
+      .admin-brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:#142c45}.admin-mark{display:grid;place-items:center;width:39px;height:39px;border-radius:12px;background:#0d6975;color:white;font-size:22px;font-weight:850}.admin-brand strong{display:block;font-size:15px;letter-spacing:.08em}.admin-brand small{display:block;font-size:9px;letter-spacing:.12em;color:#738196;margin-top:3px}.admin-header-actions{display:flex;align-items:center;gap:18px}.admin-secure{display:flex;align-items:center;gap:8px;color:#53657a;font-size:12px}.admin-secure span{width:7px;height:7px;border-radius:50%;background:#16a36a;box-shadow:0 0 0 4px #e2f7ec}.admin-logout{border:1px solid #d8e1ea;background:white;border-radius:9px;padding:9px 13px;color:#34475d;font-size:12px;font-weight:700;cursor:pointer}
+      .admin-layout{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1600px;margin:auto}.admin-side{min-height:calc(100vh - 76px);background:#102a43;padding:27px 15px;position:sticky;top:76px;height:calc(100vh - 76px);display:flex;flex-direction:column}.admin-side-label{color:#91a9bd;font-size:10px;font-weight:800;letter-spacing:.14em;padding:0 12px 16px}.admin-side-link{display:flex;align-items:center;gap:12px;padding:12px;border-radius:9px;color:#c9d7e4;text-decoration:none;font-size:12px;margin-bottom:4px}.admin-side-link span{width:20px;text-align:center;font-size:16px;color:#a7dedd}.admin-side-link:hover,.admin-side-link.active{background:#24445f;color:white}.admin-side-bottom{margin-top:auto;border-top:1px solid #2a455f;padding:20px 5px 0;display:flex;align-items:center;gap:10px}.admin-avatar{display:grid;place-items:center;background:#d7f1ef;color:#0b6570;border-radius:50%;width:36px;height:36px;font-weight:800;font-size:11px}.admin-side-bottom strong{display:block;color:#fff;font-size:11px}.admin-side-bottom small{display:block;color:#a7bbcc;font-size:9px;margin-top:5px;overflow-wrap:anywhere}
+      .admin-content{min-width:0;padding:28px clamp(18px,3vw,42px) 22px}.admin-breadcrumb{font-size:11px;color:#7b899b;margin-bottom:22px}.admin-breadcrumb strong{color:#30465d}.admin-welcome{display:flex;justify-content:space-between;align-items:center;gap:18px;background:linear-gradient(115deg,#102a43 0%,#17465c 68%,#087e8b 100%);padding:28px 30px;border-radius:17px;color:white;box-shadow:0 12px 28px rgba(16,42,67,.1)}.admin-eyebrow{font-size:9px;letter-spacing:.15em;font-weight:850;color:#0c8791}.admin-welcome .admin-eyebrow{color:#a6e8e5}.admin-welcome h1{font-size:clamp(24px,3vw,32px);margin:9px 0 8px;letter-spacing:-.04em}.admin-welcome p{font-size:12px;line-height:1.7;color:#d0e2ed;margin:0;max-width:620px}.admin-welcome-icon{width:66px;height:66px;border-radius:17px;display:grid;place-items:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-size:32px;color:#d7fffc;flex:0 0 auto}
+      .admin-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0 28px}.admin-stats article{display:flex;align-items:flex-start;gap:13px;background:white;border:1px solid #e4eaf0;border-radius:13px;padding:18px;box-shadow:0 3px 12px rgba(16,42,67,.025)}.admin-stat-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;background:#f0f4fa;border-radius:11px;color:#344b66;font-size:19px}.admin-stat-icon.teal{background:#e4f7f5;color:#087e8b}.admin-stat-icon.purple{background:#f1eafe;color:#7043b5}.admin-stats small{display:block;color:#6e7d90;font-size:10px}.admin-stats strong{display:block;font-size:25px;margin:6px 0 4px;letter-spacing:-.04em}.admin-stats em{font-size:9px;font-style:normal;color:#8b98a8}
+      .admin-section{margin:28px 0 32px;scroll-margin-top:96px}.admin-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:15px}.admin-section-head h2{font-size:19px;margin:6px 0}.admin-section-head p{margin:0;color:#77869a;font-size:11px}.admin-tag{font-size:10px;font-weight:750;color:#52677d;border:1px solid #dce4ed;border-radius:999px;padding:7px 10px;background:#fff;white-space:nowrap}.admin-tag.pending{background:#fff7e6;color:#9a5b08;border-color:#f7d99a}
+      .admin-callout{display:flex;gap:14px;padding:20px;background:#fff;border:1px solid #dfe7ef;border-radius:14px}.admin-callout-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:#eaf6f7;color:#087e8b;font-size:21px}.admin-callout strong{font-size:13px}.admin-callout p{font-size:11px;line-height:1.7;color:#6d7d91;margin:7px 0 14px;max-width:900px}.admin-primary{background:#0b7480;color:#fff;border:0;border-radius:8px;padding:10px 13px;font-size:11px;font-weight:750;cursor:pointer}.admin-primary span{padding-left:12px}
+      .admin-checklist{margin-top:10px;background:#fff;border:1px solid #e2e9f0;border-radius:12px;padding:4px 18px}.admin-checklist>div{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #edf1f5}.admin-checklist>div:last-child{border-bottom:0}.check-done,.check-next{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border-radius:50%;font-size:11px;font-weight:800}.check-done{background:#dff7eb;color:#13794b}.check-next{background:#eef2f6;color:#63748a}.admin-checklist strong{display:block;font-size:11px}.admin-checklist small{display:block;color:#78879a;font-size:10px;margin-top:4px}.admin-checklist b{margin-left:auto;color:#6b7c90;font-size:9px;white-space:nowrap}
+      .admin-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.admin-role-card{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding:16px;background:white;border:1px solid #e3eaf0;border-radius:12px}.admin-role-symbol{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#eef2f7;color:#3f5a75;font-size:17px}.admin-role-symbol.admin{background:#dff5f2;color:#087e8b}.admin-role-symbol.inventory{background:#e8f0fe;color:#3456a4}.admin-role-symbol.samples{background:#f0e9ff;color:#7043b5}.admin-role-symbol.equipment{background:#fff0dc;color:#9c5d0c}.admin-role-symbol.scientist{background:#e4f7e9;color:#237b44}.admin-role-symbol.viewer{background:#f0f2f5;color:#536477}.admin-role-card h3{font-size:12px;margin:2px 0 6px}.admin-role-card p{font-size:10px;line-height:1.6;color:#728197;margin:0 0 9px}.admin-role-status{grid-column:2;justify-self:start;font-size:9px;color:#8a97a7;background:#f5f7fa;padding:5px 7px;border-radius:5px}
+      .admin-note{margin-top:13px;padding:13px 15px;border:1px solid #f4dda4;background:#fffbeb;border-radius:10px;color:#855c16;font-size:10px;line-height:1.7}.admin-note strong{color:#70480a}
+      .admin-outline{display:inline-flex;text-decoration:none;border:1px solid #d8e1e9;background:#fff;border-radius:8px;padding:9px 12px;font-size:10px;font-weight:750;color:#34495e;white-space:nowrap}.admin-module-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.admin-module-card{background:#fff;border:1px solid #e3eaf0;border-radius:13px;padding:17px}.admin-module-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.admin-module-top>span{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#e8f5f5;color:#087e8b;font-size:18px}.admin-module-top small{font-size:9px;color:#6e7e91;text-align:right}.admin-module-card h3{font-size:13px;margin:16px 0 7px}.admin-module-card p{font-size:10px;color:#718096;line-height:1.7;min-height:52px;margin:0}.admin-module-footer{display:flex;align-items:center;gap:7px;border-top:1px solid #edf1f5;margin-top:13px;padding-top:12px;font-size:9px;color:#718096}.dot-live,.dot-pending{width:7px;height:7px;border-radius:50%;background:#16a36a}.dot-pending{background:#e7a32c}.admin-footer{padding:17px 0;color:#8794a4;font-size:10px;border-top:1px solid #e2e8f0;margin-top:30px}
+      @media(max-width:1080px){.admin-stats{grid-template-columns:1fr}.admin-module-grid{grid-template-columns:1fr}.admin-module-card p{min-height:0}}
+      @media(max-width:760px){.admin-header{padding:0 16px;height:66px}.admin-secure{display:none}.admin-layout{grid-template-columns:1fr}.admin-side{position:static;height:auto;min-height:0;padding:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.admin-side-label{grid-column:1/-1;padding:5px 8px 9px}.admin-side-link{margin:0;padding:10px;font-size:11px}.admin-side-bottom{grid-column:1/-1;margin-top:7px;padding:13px 5px 2px}.admin-content{padding:18px 13px}.admin-welcome{padding:22px 20px}.admin-welcome-icon{display:none}.admin-role-grid{grid-template-columns:1fr}.admin-section-head{align-items:flex-start;flex-direction:column}.admin-callout{padding:15px}.admin-module-grid{grid-template-columns:1fr}}
+    `}</style>
+  </main>;
+}
