@@ -46,3 +46,19 @@ export async function PATCH(request:NextRequest) {
     return NextResponse.json({user:safeUser(updated)});
   } catch(e) { return NextResponse.json({error:e instanceof Error?e.message:"Unable to update user."},{status:502}); }
 }
+
+export async function DELETE(request:NextRequest) {
+  if(!await requireSystemAdmin(request)) return NextResponse.json({error:"System administrator access required."},{status:403});
+  try {
+    const body=await request.json();
+    const id=String(body.id||"");
+    if(!/^rec[A-Za-z0-9]{14}$/.test(id)) return NextResponse.json({error:"Invalid user record."},{status:400});
+    const data=await userTableRequest("GET");
+    const record=(data.records||[]).find((r:any)=>r.id===id);
+    if(!record) return NextResponse.json({error:"User account not found."},{status:404});
+    const email=String(record.fields?.Email||"").trim().toLowerCase();
+    if(email && email===process.env.EDLS_ADMIN_EMAIL?.trim().toLowerCase()) return NextResponse.json({error:"The primary system administrator account cannot be removed here."},{status:400});
+    await userTableRequest("DELETE",undefined,id);
+    return NextResponse.json({ok:true,id});
+  } catch(e) { return NextResponse.json({error:e instanceof Error?e.message:"Unable to remove user."},{status:502}); }
+}
