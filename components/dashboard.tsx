@@ -33,6 +33,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [section, setSection] = useState("Overview");
+  const [inventoryOpen, setInventoryOpen] = useState(true);
+  const [equipmentOpen, setEquipmentOpen] = useState(false);
+  const [trackingOpen, setTrackingOpen] = useState(false);
   useEffect(() => { fetch("/api/inventory").then(async r => { const j = await r.json(); setData(j); }).catch(() => setData({error:"Could not contact the application API."})).finally(() => setLoading(false)); }, []);
   const inventory = data.inventory ?? [];
   const master = data.master ?? [];
@@ -48,10 +51,20 @@ export default function Dashboard() {
   const expired = inventory.filter(r => txt(val(r,F.expiryStatus)) === "Expired").length;
   const expiring = inventory.filter(r => txt(val(r,F.expiryStatus)) === "Expiring Soon").length;
   const activeStock = inventory.filter(r => ["Unopened","In Use"].includes(txt(val(r,F.condition))) && txt(val(r,F.expiryStatus)) !== "Expired").length;
-  const nav = ["Overview","All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Master Product List","Reagent Receiving","Receiving History","Usage & Stock Checks","Reports","Equipment","Sample Tracking"];
   const title = section === "Overview" ? "Live Reagent Command Center" : section;
   return <div className="app-shell">
-    <aside className="sidebar"><div className="brand">EDLS INVENTORY</div><div className="brand-sub">Laboratory stock operations</div><div className="nav-label">Workspace</div><nav className="nav">{nav.map(n => <a key={n} href="#" className={section===n?"active":""} onClick={e=>{e.preventDefault();setSection(n);}}>{n}</a>)}</nav><div className="nav-label">Database</div><div style={{padding:"0 12px",fontSize:11,color:"#9fb3c8",lineHeight:1.7}}>Airtable · read-only MVP<br/>Base: EDLS REAGENT DB</div></aside>
+    <aside className="sidebar"><div className="brand">EDLS INVENTORY</div><div className="brand-sub">Laboratory stock operations</div><div className="nav-label">Workspace</div>
+      <nav className="nav nav-tree">
+        <a href="#" className={section==="Overview"?"active":""} onClick={e=>{e.preventDefault();setSection("Overview");}}><span className="nav-item-icon">⌂</span>Overview</a>
+        <button type="button" className={"nav-folder "+(["All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Master Product List","Reagent Receiving","Usage & Stock Checks","Reports"].includes(section)?"folder-active":"")} aria-expanded={inventoryOpen} onClick={()=>setInventoryOpen(v=>!v)}><span className="nav-item-icon">▣</span><span className="nav-folder-name">Inventory</span><span className={"nav-chevron "+(inventoryOpen?"opened":"")}>›</span></button>
+        {inventoryOpen&&<div className="nav-children">
+          {["All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Master Product List","Reagent Receiving","Usage & Stock Checks","Reports"].map(n=><a key={n} href="#" className={section===n?"active":""} onClick={e=>{e.preventDefault();setSection(n);}}><span className="nav-child-dot"/>{n}</a>)}
+        </div>}
+        <button type="button" className={"nav-folder "+(section==="Equipment"?"folder-active":"")} aria-expanded={equipmentOpen} onClick={()=>setEquipmentOpen(v=>!v)}><span className="nav-item-icon">⚙</span><span className="nav-folder-name">Equipment Maintenance</span><span className={"nav-chevron "+(equipmentOpen?"opened":"")}>›</span></button>
+        {equipmentOpen&&<div className="nav-children"><a href="#" className={section==="Equipment"?"active":""} onClick={e=>{e.preventDefault();setSection("Equipment");}}><span className="nav-child-dot"/>Equipment</a></div>}
+        <button type="button" className={"nav-folder "+(section==="Sample Tracking"?"folder-active":"")} aria-expanded={trackingOpen} onClick={()=>setTrackingOpen(v=>!v)}><span className="nav-item-icon">⇄</span><span className="nav-folder-name">Sample &amp; Outsourcing Tracking</span><span className={"nav-chevron "+(trackingOpen?"opened":"")}>›</span></button>
+        {trackingOpen&&<div className="nav-children"><a href="#" className={section==="Sample Tracking"?"active":""} onClick={e=>{e.preventDefault();setSection("Sample Tracking");}}><span className="nav-child-dot"/>Sample Tracking</a></div>}
+      </nav><div className="nav-label">Database</div><div style={{padding:"0 12px",fontSize:11,color:"#9fb3c8",lineHeight:1.7}}>Airtable · read-only MVP<br/>Base: EDLS REAGENT DB</div></aside>
     <main className="main">
       <header className="topbar"><div><div className="eyebrow">EDLS · Laboratory Operations</div><h1>{title}</h1><div className="subtitle">Reagent stock, batch condition, expiry and inventory visibility.</div></div><div className={"badge "+(data.connected?"good":loading?"warn":"bad")}>{loading?"Connecting…":data.connected?"Airtable connected":"Connection needs setup"}</div></header>
       {data.error && <div className="error"><strong>Live data is not available.</strong><br/>{data.error} Configure the server-side Airtable token before using this dashboard with live data.</div>}
