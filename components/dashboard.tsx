@@ -83,6 +83,9 @@ export default function Dashboard() {
 }
 function ReceivingForm() {
  const [form,setForm]=useState({reagent:"",supplier:"",lot:"",ref:"",qty:"1",unit:"Pack",date:new Date().toISOString().slice(0,10),expiry:"",invoice:"",receivedBy:"",location:"Chem-Refrigerator",price:"",notes:""});
+ const [catalog,setCatalog]=useState<{reagents:Array<{id:string;name:string;reagentId:unknown;manufacturer:unknown;analyzer:unknown;unit:unknown}>;suppliers:Array<{id:string;name:string;supplierId:unknown}>;receipts:Array<{lot:unknown;reagent:unknown}>}>({reagents:[],suppliers:[],receipts:[]});
+ const [catalogError,setCatalogError]=useState("");
+ useEffect(()=>{fetch("/api/catalog").then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error||"Could not load reagent and supplier lists.");setCatalog(j);}).catch(e=>setCatalogError(e instanceof Error?e.message:"Could not load reagent and supplier lists."));},[]);
  const [message,setMessage]=useState("");
  const [busy,setBusy]=useState(false);
  function change(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>){setForm({...form,[e.target.name]:e.target.value});}
