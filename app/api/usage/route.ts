@@ -43,24 +43,6 @@ export async function POST(request: Request) {
     const currentQty = Number(stock.fields["Quantity"] ?? 0);
     if (["Expired","Exhausted","Quarantined"].includes(condition) || expiryStatus==="Expired" || currentQty<=0)
       return NextResponse.json({error:"This pack is expired, exhausted, quarantined, or has no quantity remaining. Choose an eligible pack."},{status:409});
-    const stockFields:Record<string,unknown> = {"Last Checked":new Date().toISOString().slice(0,10),"Scientist Notes":notes || undefined};
-    if (remaining !== null) stockFields["Remaining Reagent %"] = remaining/100;
-    if (activity==="Pack Opened") {
-      stockFields["Stock Condition"] = "In Use";
-      stockFields["Opened Date"] = new Date().toISOString().slice(0,10);
-    }
-    if (activity==="Pack Exhausted" || activity==="Expired") {
-      stockFields["Stock Condition"] = activity==="Expired" ? "Expired" : "Exhausted";
-      stockFields["Remaining Reagent %"] = 0;
-    }
-    if (activity==="Wastage" && removed>0 && removed>=currentQty) {
-      stockFields["Quantity"] = 0;
-      stockFields["Stock Condition"] = "Exhausted";
-      stockFields["Remaining Reagent %"] = 0;
-    } else if (activity==="Wastage" && removed>0) {
-      stockFields["Quantity"] = currentQty-removed;
-    }
-    Object.keys(stockFields).forEach(k=>stockFields[k]===undefined && delete stockFields[k]);
     const logFields:Record<string,unknown> = {
       "Stock Record":[{id:stockId}],"Usage Date":new Date().toISOString().slice(0,10),
       "Activity Type":activity,"Recorded By":recordedBy,
@@ -69,8 +51,25 @@ export async function POST(request: Request) {
     };
     if (remaining!==null) logFields["Remaining Reagent % After Check"] = remaining/100;
     Object.keys(logFields).forEach(k=>logFields[k]===undefined && delete logFields[k]);
-    await airtableUpdate(TABLES.currentInventory,stockId,stockFields);
+    // Create the log first: existing Airtable automations own Usage Check, Pack Opened,
+    // Pack Exhausted and Expired stock changes. Do not duplicate those writes here.
     const log = await airtableCreate(TABLES.usage,logFields);
+    // These activities do not have an equivalent deployed stock-update automation.
+    if (activity==="Wastage" || activity==="Stock Adjustment") {
+      const stockFields:Record<string,unknown> = {"Last Checked":new Date().toISOString().slice(0,10),"Scientist Notes":notes || undefined};
+      if (activity==="Stock Adjustment" && remaining!==null) stockFields["Remaining Reagent %"] = remaining/100;
+      if (activity==="Wastage" && removed>0) {
+        if (removed>=currentQty) {
+          stockFields["Quantity"] = 0;
+          stockFields["Stock Condition"] = "Exhausted";
+          stockFields["Remaining Reagent %"] = 0;
+        } else {
+          stockFields["Quantity"] = currentQty-removed;
+        }
+      }
+      Object.keys(stockFields).forEach(k=>stockFields[k]===undefined && delete stockFields[k]);
+      await airtableUpdate(TABLES.currentInventory,stockId,stockFields);
+    }
     return NextResponse.json({ok:true,id:log.id,message:"Stock check saved and stock record updated."},{status:201});
   } catch(error) {
     const message = error instanceof Error ? error.message : "Unexpected server error.";
