@@ -235,3 +235,6 @@ h1 { font-size:clamp(25px,3vw,34px); margin:7px 0; letter-spacing:-.035em; }
   .table-wrap tbody td{font-size:11px}
   .form-hero{padding:16px 13px}
 }
+
+/* Sidebar account actions stay at the bottom of the workspace menu */
+.sidebar{display:flex;flex-direction:column;min-height:100vh}.sidebar-account{margin-top:auto;padding:18px 5px 0;border-top:1px solid rgba(207,226,240,.18);display:grid;gap:9px}.sidebar-admin-link{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:9px;color:#d6e9f5;font-size:12px;font-weight:700}.sidebar-admin-link:hover{background:#24445f;color:#fff}.sidebar-logout{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border:1px solid rgba(207,226,240,.22);border-radius:9px;background:transparent;color:#e8f1f8;text-align:left;font-size:12px;font-weight:700;cursor:pointer}.sidebar-logout:hover{background:#24445f}.sidebar-logout span{font-size:16px}@media(max-width:950px){.sidebar{min-height:0}.sidebar-account{margin-top:16px;padding-top:12px;grid-template-columns:1fr 1fr}.sidebar-admin-link,.sidebar-logout{justify-content:center}}
