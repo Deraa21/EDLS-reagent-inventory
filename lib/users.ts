@@ -14,7 +14,7 @@ export async function requireSystemAdmin(request: NextRequest) {
   if (!session || !adminEmail || session.email.toLowerCase() !== adminEmail) return null;
   return session;
 }
-export async function userTableRequest(method: "GET"|"POST"|"PATCH", body?: unknown, recordId?: string) {
+export async function userTableRequest(method: "GET"|"POST"|"PATCH"|"DELETE", body?: unknown, recordId?: string) {
   const token = process.env.AIRTABLE_PAT;
   const baseId = process.env.AIRTABLE_BASE_ID || "appewPIE1AOyOtNuN";
   if (!token) throw new Error("Airtable connection is not configured.");
