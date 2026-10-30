@@ -89,14 +89,14 @@ function ReceivingForm() {
  async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setMessage("");try{const r=await fetch("/api/receipts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Receipt was not saved.");setMessage("Delivery recorded. Refresh the page to see the updated history.");}catch(err){setMessage(err instanceof Error?err.message:"Receipt was not saved.");}finally{setBusy(false);}}
  const field=(name:string,label:string,type="text",required=false)=><label className="form-field" key={name}><span>{label}{required?" *":""}</span><input name={name} type={type} value={(form as any)[name]} onChange={change} required={required}/></label>;
  return <div className="panel form-panel"><div className="form-title"><h2>Receive a delivery</h2><p>Pick the reagent and supplier, then record the lot, quantity and expiry. A stock record is created automatically by the existing workflow when configured.</p></div><form onSubmit={submit} className="form-grid">
- {field("reagent","Reagent record ID","text",true)}{field("supplier","Supplier record ID","text",true)}
+ <label className="form-field"><span>Reagent *</span><select name="reagent" value={form.reagent} onChange={change} required><option value="">Choose reagent</option>{catalog.reagents.map(r=><option key={r.id} value={r.id}>{r.name}{r.manufacturer?" · "+txt(r.manufacturer):""}{r.analyzer?" · "+txt(r.analyzer):""}</option>)}</select></label><label className="form-field"><span>Supplier *</span><select name="supplier" value={form.supplier} onChange={change} required><option value="">Choose supplier</option>{catalog.suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
  {field("lot","Lot / Batch Number","text",true)}{field("ref","REF Number")}
  {field("qty","Quantity Received","number",true)}<label className="form-field"><span>Purchase unit *</span><select name="unit" value={form.unit} onChange={change}><option>Pack</option><option>Kit</option><option>Bottle</option><option>Box</option><option>Other</option></select></label>
  {field("date","Date Received","date",true)}{field("expiry","Expiry Date","date")}
  {field("invoice","Invoice Number")}{field("receivedBy","Received By","text",true)}
  {field("location","Storage Location","text",true)}{field("price","Unit Price (₦)","number")}
  <label className="form-field form-wide"><span>Notes</span><textarea name="notes" value={form.notes} onChange={change} rows={3}/></label>
- <div className="form-wide notice">This form is now present in the Vercel interface. Saving remains protected until the existing Airtable field mappings and stock-creation automation are verified. Use record IDs for the linked reagent and supplier fields in this interim form.</div>
+ {catalogError&&<div className="form-wide error">{catalogError}</div>}<div className="form-wide notice">Reagent and supplier options are loaded from Airtable. Saving remains protected until the receipt field mappings and stock-creation automation are verified.</div>
  <div className="form-wide"><button className="primary-button" disabled={busy} type="submit">{busy?"Submitting…":"Record delivery"}</button>{message&&<p className="form-message">{message}</p>}</div>
  </form></div>;
 }
@@ -115,7 +115,7 @@ function UsageCheckForm() {
  <label className="form-field"><span>Your name *</span><input value={recordedBy} onChange={e=>setRecordedBy(e.target.value)} required placeholder="Scientist name"/></label>
  <label className="form-field"><span>Department / analyzer</span><input value={department} onChange={e=>setDepartment(e.target.value)}/></label>
  <label className="form-field form-wide"><span>Notes</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3}/></label>
- <div className="form-wide notice">The original 40% and 20% alert rules remain in Airtable. Stock submissions are protected until write mappings and automations have been verified.</div>
+ {inventoryError&&<div className="form-wide error">{inventoryError}</div>}<div className="form-wide notice">Only packs marked Unopened or In Use, with positive quantity and no expired status, are selectable. The original 40% and 20% alert rules remain in Airtable. Stock submissions stay protected until write mappings and automations have been verified.</div>
  <div className="form-wide"><button className="primary-button" disabled={busy||usable.length===0} type="submit">{busy?"Submitting…":"Submit stock check"}</button>{message&&<p className="form-message">{message}</p>}</div>
  </form></div>;
 }
