@@ -84,7 +84,7 @@ export default function Dashboard() {
           <div className="metric"><div className="metric-label">Nearly exhausted</div><div className="metric-value">{loading?"—":inventory.filter(r=>txt(val(r,F.level))==="Nearly Exhausted").length}</div><div className="metric-note">At or below 20% based on Airtable formula</div></div>
         </div>
       </> : null}
-      {section==="Master Product List" ? <div className="panel"><div className="panel-head"><h2>Master reagent catalogue</h2><input className="search" placeholder="Search reagents…" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="table-wrap"><table><thead><tr><th>Reagent ID</th><th>Reagent name</th><th>Manufacturer</th><th>Analyzer</th><th>Department</th><th>Category</th><th>Active</th></tr></thead><tbody>{master.filter(r=>[txt(val(r,F.masterId)),txt(val(r,F.reagent)),txt(val(r,"fld58iWhZUJEKWdNn")),txt(val(r,"fldeX9mjezw1hcbW1"))].join(" ").toLowerCase().includes(query.toLowerCase())).map(r=><tr key={r.id}><td>{txt(val(r,F.masterId))}</td><td><strong>{txt(val(r,F.reagent))}</strong></td><td>{txt(val(r,"fld58iWhZUJEKWdNn"))}</td><td>{txt(val(r,"fldeX9mjezw1hcbW1"))}</td><td>{txt(val(r,F.department))}</td><td>{txt(val(r,F.category))}</td><td>{val(r,"fld1nq4gLKc3lYwR4")?"Active":"Inactive"}</td></tr>)}</tbody></table></div>{!master.length&&!loading&&<div className="empty">No master records returned.</div>}</div> : null}
+      {section==="Master Product List" ? <><MasterReagentForm /><div className="panel"><div className="panel-head"><h2>Master reagent catalogue</h2><input className="search" placeholder="Search reagents…" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="table-wrap"><table><thead><tr><th>Reagent ID</th><th>Reagent name</th><th>Manufacturer</th><th>Analyzer</th><th>Department</th><th>Category</th><th>Active</th></tr></thead><tbody>{master.filter(r=>[txt(val(r,F.masterId)),txt(val(r,F.reagent)),txt(val(r,"fld58iWhZUJEKWdNn")),txt(val(r,"fldeX9mjezw1hcbW1"))].join(" ").toLowerCase().includes(query.toLowerCase())).map(r=><tr key={r.id}><td>{txt(val(r,F.masterId))}</td><td><strong>{txt(val(r,F.reagent))}</strong></td><td>{txt(val(r,"fld58iWhZUJEKWdNn"))}</td><td>{txt(val(r,"fldeX9mjezw1hcbW1"))}</td><td>{txt(val(r,F.department))}</td><td>{txt(val(r,F.category))}</td><td>{val(r,"fld1nq4gLKc3lYwR4")?"Active":"Inactive"}</td></tr>)}</tbody></table></div>{!master.length&&!loading&&<div className="empty">No master records returned.</div>}</div></> : null}
       {["All Inventory","Usable Stock","Low & Critical","Expired / Expiring","Overview","Reports"].includes(section) && <div className="panel"><div className="panel-head"><div><h2>{section==="Overview"||section==="Reports"?"Stock requiring attention":"Batch-level inventory"}</h2><div className="subtitle" style={{marginTop:5}}>{rows.length} record(s) · search by reagent, lot, REF or location</div></div><input className="search" placeholder="Search inventory…" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="table-wrap"><table><thead><tr><th>Stock ID</th><th>Reagent</th><th>Manufacturer / Analyzer</th><th>Lot / REF</th><th>Remaining</th><th>Level</th><th>Condition</th><th>Expiry</th><th>Location</th></tr></thead><tbody>{rows.slice(0,100).map(r=><tr key={r.id}><td><strong>{txt(val(r,F.stockId))}</strong></td><td>{txt(val(r,F.packDisplay))}</td><td>{txt(val(r,F.manufacturer))} / {txt(val(r,F.analyzer))}</td><td>{txt(val(r,F.lot))}<br/><span style={{color:"#667085"}}>{txt(val(r,F.ref))}</span></td><td>{txt(val(r,F.remaining))!=="—"?txt(val(r,F.remaining)):val(r,F.percent)!==undefined?Math.round(Number(val(r,F.percent))*100)+"%":"—"}</td><td><span className={badgeClass(txt(val(r,F.level)))}>{txt(val(r,F.level))}</span></td><td><span className={badgeClass(txt(val(r,F.condition)))}>{txt(val(r,F.condition))}</span></td><td><span className={badgeClass(txt(val(r,F.expiryStatus)))}>{txt(val(r,F.expiryStatus))}</span><br/>{fmtDate(val(r,F.expiry))}</td><td>{txt(val(r,F.location))}</td></tr>)}</tbody></table></div>{!rows.length&&!loading&&<div className="empty">No matching inventory records.</div>}</div>}
       {section === "Reagent Receiving" && <><ReceivingForm /><HistoryPanel kind="Receiving History" /></>}
       {section === "Usage & Stock Checks" && <><UsageCheckForm /><HistoryPanel kind="Usage & Stock Checks" /></>}
@@ -95,6 +95,39 @@ export default function Dashboard() {
     </main>
   </div>;
 }
+
+function MasterReagentForm() {
+ const [open,setOpen]=useState(false);
+ const [busy,setBusy]=useState(false);
+ const [message,setMessage]=useState("");
+ const [form,setForm]=useState({name:"",manufacturer:"",department:"",analyzer:"",category:"",unit:"Pack",storage:"",standardQty:"",minStock:"",reorderPoint:"",price:""});
+ const manufacturers=["SNIBE","Mindray","Erba","Axiom","Lorine","Labman"];
+ const departments=["Immunology","Chemistry","Hematology"];
+ const analyzers=["MAGLUMI 800","BS-240","XL-200","BC-5000"];
+ const categories=["Thyroid","Fertility","Hormone","Iron/Anemia","Vitamin/Bone","Tumor Marker","Infectious Disease","Liver Enzyme","Liver Function","Diabetes","Renal","Lipid","Cardiac/Enzyme","Pancreatic","Electrolyte/Mineral"];
+ function change(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>){setForm({...form,[e.target.name]:e.target.value});}
+ async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setMessage("");try{const r=await fetch("/api/catalog",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Could not add reagent.");setMessage("Reagent added successfully. Refreshing the master catalogue…");window.location.reload();}catch(err){setMessage(err instanceof Error?err.message:"Could not add reagent.");}finally{setBusy(false);}}
+ const select=(name:string,label:string,options:string[],required=true)=><label className="form-field" key={name}><span>{label}{required?" *":""}</span><select name={name} value={(form as any)[name]} onChange={change} required={required}><option value="">Choose {label.toLowerCase()}…</option>{options.map(o=><option key={o}>{o}</option>)}</select></label>;
+ const input=(name:string,label:string,type="text")=><label className="form-field" key={name}><span>{label}</span><input name={name} type={type} min={type==="number"?"0":undefined} step={type==="number"?"1":undefined} value={(form as any)[name]} onChange={change}/></label>;
+ return <div className="panel" style={{marginBottom:18}}><div className="panel-head"><div><h2>Add to master reagent list</h2><div className="subtitle" style={{marginTop:5}}>Register a new catalogue item before recording its first delivery.</div></div><button type="button" className="primary-button" onClick={()=>{setOpen(v=>!v);setMessage("");}}>{open?"Cancel":"＋ Add new reagent"}</button></div>
+ {open&&<form onSubmit={submit} className="form-grid" style={{padding:"8px 0 4px"}}><div className="form-group-title form-wide"><span className="group-icon">＋</span><div><strong>New reagent details</strong><small>This creates a master catalogue entry only; it does not create stock or a receipt.</small></div></div>
+ <label className="form-field form-wide"><span>Reagent name *</span><input name="name" value={form.name} onChange={change} required maxLength={120} placeholder="Enter the exact name on the reagent pack"/></label>
+ 
+ {select("manufacturer","Manufacturer",manufacturers)}
+ {select("analyzer","Analyzer",analyzers)}
+ {select("department","Department",departments)}
+ {select("category","Category",categories)}
+ {select("unit","Purchase unit",["Pack","Bottle","Pieces"])}
+ 
+ {input("standardQty","Standard purchase quantity","number")}
+ {input("minStock","Minimum stock level","number")}
+ {input("reorderPoint","Reorder point","number")}
+ {input("price","Standard unit price (₦)","number")}
+ {input("storage","Storage condition")}
+ <div className="form-wide form-actions"><button className="primary-button" disabled={busy} type="submit">{busy?"Saving…":"Save to master list →"}</button>{message&&<p className="form-message">{message}</p>}</div></form>}
+ </div>;
+}
+
 function ReceivingForm() {
  const [form,setForm]=useState({reagent:"",supplier:"",lot:"",ref:"",qty:"1",unit:"Pack",date:new Date().toISOString().slice(0,10),expiry:"",invoice:"",receivedBy:"",location:"Chem-Refrigerator",price:"",notes:""});
  const [catalog,setCatalog]=useState<{reagents:Array<{id:string;name:string;reagentId:unknown;manufacturer:unknown;analyzer:unknown;unit:unknown}>;suppliers:Array<{id:string;name:string;supplierId:unknown}>;receipts:Array<{lot:unknown;reagent:unknown}>}>({reagents:[],suppliers:[],receipts:[]});
